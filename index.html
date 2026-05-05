@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Personal weight loss tracker with calorie calculator, milestone tracking, and progress chart.">
+  <title>Weight Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ── SETUP SCREEN ───────────────────────────────────────────── -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <h1>weight <em>tracker</em></h1>
+    <p class="setup-sub">set up your goal · takes 30 seconds</p>
+
+    <!-- Unit toggles on setup -->
+    <div class="unit-row" style="margin-bottom:1.5rem;">
+      <div class="unit-group">
+        <span class="unit-label">weight</span>
+        <div class="unit-toggle">
+          <button class="wu-btn active" data-u="kg" onclick="setWeightUnit('kg')">kg</button>
+          <button class="wu-btn" data-u="lbs" onclick="setWeightUnit('lbs')">lbs</button>
+        </div>
+      </div>
+      <div class="unit-group">
+        <span class="unit-label">height</span>
+        <div class="unit-toggle">
+          <button class="hu-btn active" data-u="cm" onclick="setHeightUnit('cm')">cm</button>
+          <button class="hu-btn" data-u="ftin" onclick="setHeightUnit('ftin')">ft/in</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="fields-2">
+      <div class="field">
+        <label>Starting weight</label>
+        <input type="number" id="s-cw" placeholder="e.g. 85" step="0.1" min="30" max="700">
+      </div>
+      <div class="field">
+        <label>Goal weight</label>
+        <input type="number" id="s-gw" placeholder="e.g. 75" step="0.1" min="30" max="700">
+      </div>
+    </div>
+
+    <div class="fields-2">
+      <div class="field">
+        <label>Start date</label>
+        <input type="date" id="s-sd">
+      </div>
+      <div class="field">
+        <label>Deadline</label>
+        <input type="date" id="s-dl">
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="setupDone()">Start tracking →</button>
+    <p class="setup-note">all data stays in your browser · no account needed</p>
+  </div>
+</div>
+
+<!-- ── MAIN APP ───────────────────────────────────────────────── -->
+<div id="app">
+
+  <nav class="topbar">
+    <div class="logo">weight_tracker</div>
+    <div class="topbar-right">
+      <div class="unit-toggle topbar-toggle">
+        <button class="wu-btn active" data-u="kg" onclick="setWeightUnit('kg')">kg</button>
+        <button class="wu-btn" data-u="lbs" onclick="setWeightUnit('lbs')">lbs</button>
+      </div>
+      <div class="unit-toggle topbar-toggle">
+        <button class="hu-btn active" data-u="cm" onclick="setHeightUnit('cm')">cm</button>
+        <button class="hu-btn" data-u="ftin" onclick="setHeightUnit('ftin')">ft/in</button>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="tb-btn theme-btn" id="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">☀</button>
+      <button class="tb-btn accent" onclick="openModal()">settings</button>
+      <button class="tb-btn" onclick="resetAll()">reset</button>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat"><div class="stat-l">started</div><div class="stat-v" id="st-start">—</div></div>
+      <div class="stat"><div class="stat-l">current</div><div class="stat-v g" id="st-cur">—</div></div>
+      <div class="stat"><div class="stat-l">lost</div><div class="stat-v r" id="st-lost">—</div></div>
+      <div class="stat"><div class="stat-l">to goal</div><div class="stat-v b" id="st-togo">—</div></div>
+      <div class="stat"><div class="stat-l">days left</div><div class="stat-v" id="st-days">—</div></div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="prog-wrap">
+      <div class="prog-meta">
+        <span id="pg-start">—</span>
+        <span id="pg-pct">0% complete</span>
+        <span id="pg-goal">—</span>
+      </div>
+      <div class="prog-track">
+        <div class="prog-fill" id="prog-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Pace Banner -->
+    <div class="pace-banner" id="pace-banner" style="display:none">
+      <span class="pace-icon" id="pace-icon"></span>
+      <span id="pace-msg"></span>
+    </div>
+
+    <!-- Log Weight -->
+    <div class="card log-panel">
+      <div class="log-label" id="log-w-label">log weight</div>
+      <div class="log-inputs">
+        <input class="log-input log-input-w" type="number" id="log-w" placeholder="weight" step="0.1" min="30" max="700" aria-label="Weight">
+        <input class="log-input log-input-d" type="date" id="log-d" aria-label="Date">
+        <button class="log-btn" onclick="logWeight()">+ add</button>
+        <span class="log-fb" id="log-fb" aria-live="polite">saved ✓</span>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-bar" role="tablist">
+      <button class="tab-btn active" data-tab="chart" role="tab">chart</button>
+      <button class="tab-btn" data-tab="calories" role="tab">calories</button>
+      <button class="tab-btn" data-tab="log" role="tab">weight log</button>
+    </div>
+
+    <!-- Tab: Chart -->
+    <div class="tab-pane active" id="tab-chart">
+      <div class="card chart-inner" style="margin-bottom:1.5rem">
+        <div class="chart-legend">
+          <span class="leg-item"><span class="leg-dash" style="border-color:var(--accent)"></span>target</span>
+          <span class="leg-item"><span class="leg-dash" style="border-color:#ff9f40"></span>your pace</span>
+          <span class="leg-item"><span class="leg-line" style="background:#5c9eff"></span>actual</span>
+          <span class="leg-item"><span class="leg-dot" style="background:rgba(110,110,110,0.55)"></span>upcoming</span>
+          <span class="leg-item"><span class="leg-dot" style="background:var(--accent)"></span>reached</span>
+        </div>
+        <div class="chart-canvas-wrap">
+          <canvas id="main-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- Milestones accordion -->
+      <div class="ms-accordion" id="ms-accordion">
+        <div class="ms-header" id="ms-accordion-header" role="button" tabindex="0" aria-expanded="false">
+          <div class="ms-header-left">
+            <span class="ms-title">milestones</span>
+            <span class="ms-pill" id="ms-pill">0 / 0</span>
+          </div>
+          <span class="ms-chevron">▾</span>
+        </div>
+        <div class="ms-body">
+          <div class="ms-list" id="ms-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Calories -->
+    <div class="tab-pane" id="tab-calories">
+      <div class="calc-grid">
+        <div>
+          <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);margin-bottom:1.25rem;line-height:1.7">
+            Enter your details to calculate daily calorie targets. Changes here save automatically.
+          </p>
+          <div class="fields-2">
+            <div class="field">
+              <label>Age</label>
+              <input type="number" id="calc-age" placeholder="30" min="16" max="100" oninput="syncCalcField('age', this.value)">
+            </div>
+            <div class="field">
+              <label>Gender</label>
+              <select id="calc-gender" onchange="syncCalcField('gender', this.value)">
+                <option value="">select…</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Height cm -->
+          <div class="field" id="calc-ht-cm-row">
+            <label>Height (cm)</label>
+            <input type="number" id="calc-ht-cm" placeholder="175" min="100" max="250"
+              oninput="syncCalcField('heightCm', this.value)">
+          </div>
+          <!-- Height ft/in -->
+          <div class="field fields-2" id="calc-ht-ftin-row" style="display:none">
+            <div class="field" style="margin-bottom:0">
+              <label>Height (ft)</label>
+              <input type="number" id="calc-ht-ft" placeholder="5" min="3" max="8"
+                oninput="saveHeightFtIn()">
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label>Height (in)</label>
+              <input type="number" id="calc-ht-in" placeholder="9" min="0" max="11"
+                oninput="saveHeightFtIn()">
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Activity level</label>
+            <select id="calc-activity" onchange="syncCalcField('activityLevel', this.value)">
+              <option value="">select…</option>
+              <option value="sedentary">Sedentary (desk job, little exercise)</option>
+              <option value="light">Light (10k steps / 1–3 days/week)</option>
+              <option value="moderate">Moderate (3–5 days/week)</option>
+              <option value="active">Active (6–7 days/week)</option>
+              <option value="very_active">Very active (physical job + training)</option>
+            </select>
+          </div>
+        </div>
+        <div class="calc-results" id="calc-results">
+          <div class="calc-placeholder">Fill in your details on the left to see calorie targets.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Log -->
+    <div class="tab-pane" id="tab-log">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+        <button class="tb-btn" onclick="exportCSV()">↓ export CSV</button>
+      </div>
+      <div class="card" style="overflow:hidden">
+        <table class="history-table">
+          <thead>
+            <tr><th>date</th><th>weight</th><th>change</th><th></th><th></th></tr>
+          </thead>
+          <tbody id="log-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── SETTINGS MODAL ─────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal">
+    <h2 id="modal-title">Settings</h2>
+
+    <div class="fields-2">
+      <div class="field"><label>Starting weight</label><input type="number" id="m-sw" step="0.1"></div>
+      <div class="field"><label>Goal weight</label><input type="number" id="m-gw" step="0.1"></div>
+    </div>
+    <div class="fields-2">
+      <div class="field"><label>Start date</label><input type="date" id="m-sd"></div>
+      <div class="field"><label>Deadline</label><input type="date" id="m-dl"></div>
+    </div>
+
+    <div class="divider" style="margin:1.25rem 0"></div>
+    <p style="font-family:var(--font-m);font-size:10px;color:var(--muted);margin-bottom:1rem;letter-spacing:0.05em;text-transform:uppercase">Body stats (for calorie calc)</p>
+
+    <div class="fields-2">
+      <div class="field"><label>Age</label><input type="number" id="m-age" min="16" max="100"></div>
+      <div class="field">
+        <label>Gender</label>
+        <select id="m-gender">
+          <option value="">—</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Height cm -->
+    <div class="field" id="m-ht-cm-row">
+      <label>Height (cm)</label>
+      <input type="number" id="m-ht-cm" min="100" max="250" placeholder="175">
+    </div>
+    <!-- Height ft/in -->
+    <div class="fields-2" id="m-ht-ftin-row" style="display:none">
+      <div class="field"><label>Height (ft)</label><input type="number" id="m-ht-ft" min="3" max="8" placeholder="5"></div>
+      <div class="field"><label>Height (in)</label><input type="number" id="m-ht-in" min="0" max="11" placeholder="9"></div>
+    </div>
+
+    <div class="field">
+      <label>Activity level</label>
+      <select id="m-activity">
+        <option value="">—</option>
+        <option value="sedentary">Sedentary</option>
+        <option value="light">Light (10k steps / 1–3x/week)</option>
+        <option value="moderate">Moderate (3–5x/week)</option>
+        <option value="active">Active (6–7x/week)</option>
+        <option value="very_active">Very active</option>
+      </select>
+    </div>
+
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">cancel</button>
+      <button class="modal-save" onclick="saveModal()">save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONFIRM RESET MODAL ────────────────────────────────────── -->
+<div class="modal-overlay" id="confirm-modal" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:360px;text-align:center">
+    <div style="font-size:2rem;margin-bottom:1rem">⚠</div>
+    <h2 style="margin-bottom:.5rem">Reset everything?</h2>
+    <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);margin-bottom:1.5rem;line-height:1.7">
+      This will delete all your weight entries, milestones, and settings. This cannot be undone.
+    </p>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeConfirmModal()">cancel</button>
+      <button class="modal-save" style="background:var(--red);flex:1" onclick="confirmReset()">yes, reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Scripts ────────────────────────────────────────────────── -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="js/data.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/ui.js"></script>
+<script>
+  // Called from oninput on calc tab fields
+  function syncCalcField(field, value) {
+    if (!state.cfg) return;
+    state.cfg[field] = value;
+    persist();
+    renderCalcResults();
+  }
+
+  // ft/in height sync from calc tab
+  function saveHeightFtIn() {
+    if (!state.cfg) return;
+    const ft  = document.getElementById('calc-ht-ft').value;
+    const ins = document.getElementById('calc-ht-in').value;
+    if (ft || ins) {
+      state.cfg.heightCm = displayToCm(ft, ins);
+      persist();
+      renderCalcResults();
+    }
+  }
+
+  // Close modals on overlay click or Escape
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeModal(); closeConfirmModal(); }
+  });
+  document.getElementById('modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal')) closeModal();
+  });
+  document.getElementById('confirm-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('confirm-modal')) closeConfirmModal();
+  });
+
+  // Boot
+  loadFromStorage();
+  applyTheme(state.theme);
+  if (state.cfg) showApp();
+</script>
+</body>
+</html>
